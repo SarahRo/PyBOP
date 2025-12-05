@@ -30,8 +30,11 @@ class TestEvaluation:
     def parameters(self):
         return {
             "Negative electrode active material volume fraction": pybop.Parameter(
-                distribution=stats.Normal(mu=0.5, sigma=0.01),
-                bounds=[0.375, 0.625],
+                distribution=pybop.Gaussian(
+                    0.5,
+                    0.01,
+                    truncated_at=[0.375, 0.625],
+                ),
                 transformation=pybop.ScaledTransformation(
                     coefficient=1 / 0.25, intercept=-0.375
                 ),

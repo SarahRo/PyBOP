@@ -136,7 +136,7 @@ class Parameter:
                 self._distribution = scale * X + loc
             else:
                 self._distribution = distribution()
-            
+
         elif (
             isinstance(
                 distribution,
@@ -153,28 +153,23 @@ class Parameter:
                 "The distribution must be of type pybop.Distribution, stats.rv_continous, or stats._distribution_infrastructure.ContinousDistribution"
             )
 
+        if self._distribution is not None:
+            lower, upper = self._distribution.support()
+            if np.isinf(lower) and np.isinf(upper):
+                self._bounds = None
+            else:
+                self._bounds = Bounds(lower, upper)
+
         if bounds is not None:
-            if isinstance(self._distribution, Distribution):
-                self._distribution.truncate(bounds[0], bounds[1])
-            elif isinstance(
-                self._distribution,
-                stats._distribution_infrastructure.ContinuousDistribution,  # noqa: SLF001
-            ):
-                self._distribution = stats.truncate(
-                    self._distribution, bounds[0], bounds[1]
+            if distribution is not None:
+                raise ParameterError(
+                    "Bounds can only be set if no distribution is provided. If a bounded distribution is needed, please ensure the distribution itself is bounded, for example, by using scipy.stats.truncate."
                 )
             # Set bounds with validation
             self._bounds = Bounds(bounds[0], bounds[1])
             # Add uniform distribution for finite bounds in order to sample initial values
             if all(np.isfinite(np.asarray(bounds))) and self._distribution is None:
                 self._distribution = stats.Uniform(a=bounds[0], b=bounds[1])
-
-        if bounds is None and self._distribution is not None:
-            lower, upper = self._distribution.support()
-            if np.isinf(lower) and np.isinf(upper):
-                self._bounds = None
-            else:
-                self._bounds = Bounds(lower, upper)
 
         if initial_value is None and self._distribution is not None:
             initial_value = self.sample_from_distribution()[0]

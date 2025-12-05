@@ -20,8 +20,11 @@ class TestParameter:
     @pytest.fixture
     def parameter(self):
         return pybop.Parameter(
-            distribution=pybop.Gaussian(0.6, 0.02),
-            bounds=[0.375, 0.7],
+            distribution=pybop.Gaussian(
+                0.6,
+                0.02,
+                truncated_at=[0.375, 0.7],
+            ),
             initial_value=0.6,
         )
 
@@ -34,10 +37,20 @@ class TestParameter:
         assert parameter.initial_value == 0.6
         assert parameter() == 0.6
 
+        # test error if bounds and distribution
+        with pytest.raises(
+            ParameterError,
+            match="Bounds can only be set if no distribution is provided. If a bounded distribution is needed, please ensure the distribution itself is bounded, for example, by using scipy.stats.truncate.",
+        ):
+            pybop.Parameter(
+                distribution=stats.Normal(mu=0.3, sigma=0.1), bounds=(0.4, 0.8)
+            )
+
         # test truncate distribution
-        param = pybop.Parameter(
-            distribution=stats.Normal(mu=0.3, sigma=0.1), bounds=(0.4, 0.8)
-        )
+        distr = stats.make_distribution(stats.norm)
+        X = 0.1 * distr() + 0.3
+
+        param = pybop.Parameter(distribution=stats.truncate(X, 0.4, 0.8))
         assert param.distribution.support()[0] == 0.4
         assert param.distribution.support()[1] == 0.8
 
@@ -96,8 +109,11 @@ class TestParameter:
 
     def test_sample_initial_values(self):
         parameter = pybop.Parameter(
-            distribution=pybop.Gaussian(0.6, 0.02),
-            bounds=[0.375, 0.7],
+            distribution=pybop.Gaussian(
+                0.6,
+                0.02,
+                truncated_at=[0.375, 0.7],
+            )
         )
         sample = parameter._initial_value
         assert (sample >= 0.375) and (sample <= 0.7)
@@ -113,8 +129,11 @@ class TestParameters:
     @pytest.fixture
     def parameter(self):
         return pybop.Parameter(
-            distribution=pybop.Gaussian(0.6, 0.02),
-            bounds=[0.375, 0.7],
+            distribution=pybop.Gaussian(
+                0.6,
+                0.02,
+                truncated_at=[0.375, 0.7],
+            ),
             initial_value=0.6,
         )
 
@@ -138,8 +157,11 @@ class TestParameters:
                 {
                     name: parameter,
                     "Positive electrode active material volume fraction": pybop.Parameter(
-                        distribution=pybop.Gaussian(0.6, 0.02),
-                        bounds=[0.375, 0.7],
+                        distribution=pybop.Gaussian(
+                            0.6,
+                            0.02,
+                            truncated_at=[0.375, 0.7],
+                        ),
                         initial_value=0.6,
                     ),
                 }
@@ -206,9 +228,12 @@ class TestParameters:
         params = pybop.Parameters(
             {
                 name: pybop.Parameter(
-                    distribution=pybop.Gaussian(0.01, 0.2),
+                    distribution=pybop.Gaussian(
+                        0.01,
+                        0.2,
+                        truncated_at=[-1, 1],
+                    ),
                     transformation=pybop.LogTransformation(),
-                    bounds=[-1, 1],
                 )
             }
         )
